@@ -26,34 +26,37 @@ export default class SeedMapSetter extends BasePlugin {
 
   constructor(server, options, connectors) {
     super(server, options, connectors);
+    
+    this.changeLayer = this.changeLayer.bind(this);
+    this.setNextLayer = this.setNextLayer.bind(this);
   }
 
   async mount() {
-    if (!this.canSetCurrentAndNext()){
-      return;
-    }
-
-    let newSeedingLayer = this.getRandom(this.options.seedingLayers);
-    if (newSeedingLayer !== undefined) {
-      await this.changeLayer(newSeedingLayer);
-    }
-
-    let newAfterSeedingLayer = this.getRandom(this.options.afterSeedingLayers);
-    if (newAfterSeedingLayer !== undefined){
-      await this.setNextLayer(newAfterSeedingLayer);
-    }
+    this.changeLayer();
+    this.setNextLayerTimeout = setTimeout(this.setNextLayer, 5 * 60 * 1000);
   }
 
   async unmount() {
-    ;
+    clearTimeout(this.setNextLayerTimeout);
   }
 
-  canSetCurrentAndNext() {
-    return this.server.currentLayer !== null
-      && this.server.currentLayer.gamemode
-      && this.server.currentLayer.gamemode.localeCompare('seed', 'en', { sensitivity: 'base' })
-      && this.server.nextLayer === null 
-      && this.server.playerCount === 0;
+  async changeLayer() {
+    let newSeedingLayer = this.getRandom(this.options.seedingLayers);
+    
+    if (this.isGameModeSeed() && this.isServerIsEmpty() && newSeedingLayer) {
+      this.verbose(1, 'Setting current layer to ' + newSeedingLayer);
+      await this.server.rcon.execute(`AdminSetNextLayer ${newSeedingLayer}`);
+      await this.server.rcon.execute(`AdminEndMatch`);
+    }
+  }
+
+  async setNextLayer() {
+    let newAfterSeedingLayer = this.getRandom(this.options.afterSeedingLayers);
+      
+    if (this.isGameModeSeed() && newAfterSeedingLayer) {
+      this.verbose(1, 'Setting next layer to ' + newAfterSeedingLayer);
+      await this.server.rcon.execute(`AdminSetNextLayer ${newAfterSeedingLayer}`);
+    }
   }
 
   getRandom(array) {
@@ -61,12 +64,22 @@ export default class SeedMapSetter extends BasePlugin {
       ? array[Math.floor(Math.random() * array.length)]
       : undefined;
   }
-
-  async changeLayer(layer) {
-    await this.server.rcon.execute(`AdminChangeLayer ${layer}`);
+    
+  isGameModeSeed() {
+    if (this.server.currentLayer?.gamemode !== "Seed") {
+      this.verbose(1, 'Current layer is not seed');
+      return false;
+    }
+      
+    return true;
   }
-
-  async setNextLayer(layer) {
-    await this.server.rcon.execute(`AdminSetNextLayer ${layer}`);
+    
+  isServerIsEmpty() {
+    if (this.server.playerCount > 0) {
+      this.verbose(1, 'There are players on the server');
+      return false;
+    }
+      
+    return true;
   }
 }

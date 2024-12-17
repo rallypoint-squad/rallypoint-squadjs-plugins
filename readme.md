@@ -7,9 +7,9 @@ This plugin is intended to bring more variety into the seeding layers and layers
 Example configuration:
 ```json
 {
-    "plugin": "SeedMapSetterr",
+    "plugin": "SeedMapSetter",
     "enabled": true,
-    "seedingLayers": ["Sumari_Seed_v1 RGF USA"],
-    "afterSeedingLayers": ["Narva_RAAS_v1 USA+LightInfantry RGF+LightInfantry"]
+    "seedingLayers": ["Logar_Seed_v1 USA WPMC", "Sumari_Seed_v1 USA WPMC", "Fallujah_Seed_v1 USA WPMC"],
+    "afterSeedingLayers": ["Narva_RAAS_v1 USA+LightInfantry RGF+LightInfantry", "Mutaha_RAAS_v1 USA+LightInfantry RGF+LightInfantry", "Harju_RAAS_v2 USA+LightInfantry RGF+LightInfantry"]
 }
 ```
