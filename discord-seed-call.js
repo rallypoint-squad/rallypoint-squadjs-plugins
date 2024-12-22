@@ -51,9 +51,12 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
     var timeoutValue = this.getTimeoutValue();
 
     if (timeoutValue === undefined) {
+      this.verbose(1, 'Wrong timeout, won\'t send a message');
       return;
     }
 
+    this.verbose(1, 'Message will be sent in ' + timeoutValue + ' ms');
+      
     this.timeout = setTimeout(this.sendMessage, timeoutValue);
   }
 
@@ -64,16 +67,16 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
   getTimeoutValue() {
     var now = moment.utc();
     var msgTime = moment(this.options.time, 'hh:mm');
-
+ 	
     var timeoutValue = this.getMinutesOfDay(msgTime) - this.getMinutesOfDay(now);
-
+      
     return timeoutValue > 0
-      ? timeoutValue
+      ? timeoutValue * 60 * 1000
       : undefined;
   }
 
-  getMinutesOfDay(moment) {
-    moment.Minutes() + moment.Hours() * 60;
+  getMinutesOfDay(dateTime) {
+    return dateTime.minutes() + dateTime.hours() * 60;
   }
 
   async sendMessage() {
@@ -82,13 +85,32 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       return;
     }
 
-    content = this.options.message;
+    var content = this.options.message;
 
     if (this.options.pingGroups.length > 0) {
       content += "\n\n" + this.options.pingGroups.map((groupID) => `<@&${groupID}>`).join(' ');
     }
     
-    var message = await this.channel.send(this.options.message);
-    await message.crosspost();
+    try {
+      var message = await this.channel.send({
+        "content": content,
+        "allowed_mentions": {
+          "parse": ["roles"]
+        }
+      });
+
+      this.verbose(1, `Sent message '${message.content}'`);
+        
+      try {
+        await message.crosspost();
+        this.verbose(1, 'Message crossposted');
+      }
+      catch (error) {
+        this.verbose(1, 'Error when crossposting message', error);
+      }
+    }
+    catch (error) {
+      this.verbose(1, 'Error when sending message', error);
+    }
   }
 }
