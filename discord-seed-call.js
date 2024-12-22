@@ -68,10 +68,10 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
     var now = moment.utc();
     var msgTime = moment(this.options.time, 'hh:mm');
  	
-    var timeoutValue = this.getMinutesOfDay(msgTime) - this.getMinutesOfDay(now);
+    var minutesDiff = this.getMinutesOfDay(msgTime) - this.getMinutesOfDay(now);
       
-    return timeoutValue > 0
-      ? timeoutValue * 60 * 1000
+    return minutesDiff > 0
+      ? minutesDiff * 60 * 1000
       : undefined;
   }
 
