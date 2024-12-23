@@ -27,30 +27,37 @@ export default class SeedMapSetter extends BasePlugin {
   constructor(server, options, connectors) {
     super(server, options, connectors);
 
+    this.onPlayerConnected = this.onPlayerConnected.bind(this);
     this.changeLayer = this.changeLayer.bind(this);
     this.setNextLayer = this.setNextLayer.bind(this);
   }
 
   async mount() {
-    this.server.on('PLAYER_CONNECTED', this.changeLayer);
+    this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
   }
 
   async unmount() {
-    this.server.removeEventListener('PLAYER_CONNECTED', this.changeLayer);
+    this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
 
+    clearTimeout(this.changeLayerTimeout);
     clearTimeout(this.setNextLayerTimeout);
+  }
+    
+  onPlayerConnected() {
+    if (this.isOnlyOnePlayerOnTheServer()) {
+      this.changeLayerTimeout = setTimeout(this.changeLayer, 10 * 1000);
+      this.verbose(1, 'New seeding map will be set in 10 seconds');
+    }
   }
 
   async changeLayer() {
     let newSeedingLayer = this.getRandom(this.options.seedingLayers);
     
-    if (newSeedingLayer && this.isGameModeSeed() && this.isOnlyOnePlayerOnTheServer()) {
+    if (newSeedingLayer && this.isGameModeSeed()) {
       this.verbose(1, 'Setting current layer to ' + newSeedingLayer);
       await this.server.rcon.execute(`AdminChangeLayer ${newSeedingLayer}`);
       
       this.setNextLayerTimeout = setTimeout(this.setNextLayer, 5 * 60 * 1000);
-
-      this.server.removeEventListener('PLAYER_CONNECTED', this.changeLayer);
     }
   }
 
@@ -79,7 +86,7 @@ export default class SeedMapSetter extends BasePlugin {
   }
     
   isOnlyOnePlayerOnTheServer() {
-    if (this.server.playerCount <= 1) {
+    if (this.server.playerCount > 1) {
       this.verbose(1, 'There are multiple players on the server');
       return false;
     }
