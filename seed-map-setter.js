@@ -26,27 +26,38 @@ export default class SeedMapSetter extends BasePlugin {
 
   constructor(server, options, connectors) {
     super(server, options, connectors);
-    
+
+    this.onPlayerConnected = this.onPlayerConnected.bind(this);
     this.changeLayer = this.changeLayer.bind(this);
     this.setNextLayer = this.setNextLayer.bind(this);
   }
 
   async mount() {
-    this.changeLayer();
-    this.setNextLayerTimeout = setTimeout(this.setNextLayer, 5 * 60 * 1000);
+    this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
   }
 
   async unmount() {
+    this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
+
+    clearTimeout(this.changeLayerTimeout);
     clearTimeout(this.setNextLayerTimeout);
+  }
+    
+  onPlayerConnected() {
+    if (this.isOnlyOnePlayerOnTheServer()) {
+      this.changeLayerTimeout = setTimeout(this.changeLayer, 10 * 1000);
+      this.verbose(1, 'New seeding map will be set in 10 seconds');
+    }
   }
 
   async changeLayer() {
     let newSeedingLayer = this.getRandom(this.options.seedingLayers);
     
-    if (this.isGameModeSeed() && this.isServerIsEmpty() && newSeedingLayer) {
+    if (newSeedingLayer && this.isGameModeSeed()) {
       this.verbose(1, 'Setting current layer to ' + newSeedingLayer);
-      await this.server.rcon.execute(`AdminSetNextLayer ${newSeedingLayer}`);
-      await this.server.rcon.execute(`AdminEndMatch`);
+      await this.server.rcon.execute(`AdminChangeLayer ${newSeedingLayer}`);
+      
+      this.setNextLayerTimeout = setTimeout(this.setNextLayer, 5 * 60 * 1000);
     }
   }
 
@@ -74,9 +85,9 @@ export default class SeedMapSetter extends BasePlugin {
     return true;
   }
     
-  isServerIsEmpty() {
-    if (this.server.playerCount > 0) {
-      this.verbose(1, 'There are players on the server');
+  isOnlyOnePlayerOnTheServer() {
+    if (this.server.playerCount > 1) {
+      this.verbose(1, 'There are multiple players on the server');
       return false;
     }
       
