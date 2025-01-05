@@ -81,21 +81,21 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
 
   async sendMessage() {
     if (!this.channel) {
-      this.verbose(1, `Could not send Discord Message. Channel not initialized.`);
+      this.verbose(1, 'Could not send Discord Message. Channel not initialized.');
       return;
     }
 
     var content = this.options.message;
 
     if (this.options.pingGroups.length > 0) {
-      content += "\n\n" + this.options.pingGroups.map((groupID) => `<@&${groupID}>`).join(' ');
+      content += '\n\n' + this.options.pingGroups.map((groupID) => `<@&${groupID}>`).join(' ');
     }
 
     try {
       var message = await this.channel.send({
-        "content": content,
-        "allowed_mentions": {
-          "parse": ["roles"]
+        'content': content,
+        'allowed_mentions': {
+          'parse': ['roles']
         }
       });
 
