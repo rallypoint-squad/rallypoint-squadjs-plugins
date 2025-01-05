@@ -56,7 +56,7 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
     }
 
     this.verbose(1, 'Message will be sent in ' + timeoutValue + ' ms');
-      
+
     this.timeout = setTimeout(this.sendMessage, timeoutValue);
   }
 
@@ -67,9 +67,9 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
   getTimeoutValue() {
     var now = moment.utc();
     var msgTime = moment(this.options.time, 'hh:mm');
- 	
+
     var minutesDiff = this.getMinutesOfDay(msgTime) - this.getMinutesOfDay(now);
-      
+
     return minutesDiff > 0
       ? minutesDiff * 60 * 1000
       : undefined;
@@ -90,7 +90,7 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
     if (this.options.pingGroups.length > 0) {
       content += "\n\n" + this.options.pingGroups.map((groupID) => `<@&${groupID}>`).join(' ');
     }
-    
+
     try {
       var message = await this.channel.send({
         "content": content,
@@ -100,7 +100,7 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       });
 
       this.verbose(1, `Sent message '${message.content}'`);
-        
+
       try {
         await message.crosspost();
         this.verbose(1, 'Message crossposted');
