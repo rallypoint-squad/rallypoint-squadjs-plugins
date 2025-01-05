@@ -4,7 +4,7 @@ import DiscordBasePlugin from './discord-base-plugin.js';
 
 export default class DiscordSeedCall extends DiscordBasePlugin {
   static get description() {
-    return 'The <code>DiscordSeedCall</code> plugin will send a message in a Discord channel at specified time of the day.';
+    return `The <code>DiscordSeedCall</code> plugin will send a message in a Discord channel at specified time of the day.`;
   }
 
   static get defaultEnabled() {
@@ -16,27 +16,27 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       ...DiscordBasePlugin.optionsSpecification,
       channelID: {
         required: true,
-        description: 'The ID of the channel to send the seeding message to.',
-        default: '',
-        example: '667741905228136459'
+        description: `The ID of the channel to send the seeding message to.`,
+        default: ``,
+        example: `667741905228136459`
       },
       time: {
         required: true,
-        description: 'Time of the day (UTC, hh:mm) at which the message will be send.',
-        default: '',
-        example: '15:00'
+        description: `Time of the day (UTC, hh:mm) at which the message will be send.`,
+        default: ``,
+        example: `15:00`
       },
       message: {
         required: true,
-        description: 'The message being sent.',
-        default: '',
-        example: 'Seeding has started.'
+        description: `The message being sent.`,
+        default: ``,
+        example: `Seeding has started.`
       },
       pingGroups: {
         required: false,
-        description: 'A list of Discord role IDs to ping.',
+        description: `A list of Discord role IDs to ping.`,
         default: [],
-        example: ['500455137626554379']
+        example: [`500455137626554379`]
       }
     }
   }
@@ -51,11 +51,11 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
     var timeoutValue = this.getTimeoutValue();
 
     if (timeoutValue === undefined) {
-      this.verbose(1, 'Wrong timeout, won\'t send a message');
+      this.verbose(1, `Wrong timeout, won't send a message`);
       return;
     }
 
-    this.verbose(1, 'Message will be sent in ' + timeoutValue + ' ms');
+    this.verbose(1, `Message will be sent in ${timeoutValue} ms`);
       
     this.timeout = setTimeout(this.sendMessage, timeoutValue);
   }
@@ -66,7 +66,7 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
 
   getTimeoutValue() {
     var now = moment.utc();
-    var msgTime = moment(this.options.time, 'hh:mm');
+    var msgTime = moment(this.options.time, `hh:mm`);
  	
     var minutesDiff = this.getMinutesOfDay(msgTime) - this.getMinutesOfDay(now);
       
@@ -84,11 +84,16 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       this.verbose(1, `Could not send Discord Message. Channel not initialized.`);
       return;
     }
+      
+    if (this.server.playerCount > 60) {
+      this.verbose(1, `Server already seeded.`);
+      return;
+    }
 
     var content = this.options.message;
 
     if (this.options.pingGroups.length > 0) {
-      content += "\n\n" + this.options.pingGroups.map((groupID) => `<@&${groupID}>`).join(' ');
+      content += `\n\n` + this.options.pingGroups.map((groupID) => `<@&${groupID}>`).join(' ');
     }
     
     try {
@@ -103,14 +108,14 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
         
       try {
         await message.crosspost();
-        this.verbose(1, 'Message crossposted');
+        this.verbose(1, `Message crossposted`);
       }
       catch (error) {
-        this.verbose(1, 'Error when crossposting message', error);
+        this.verbose(1, `Error when crossposting message`, error);
       }
     }
     catch (error) {
-      this.verbose(1, 'Error when sending message', error);
+      this.verbose(1, `Error when sending message`, error);
     }
   }
 }
