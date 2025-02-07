@@ -2,7 +2,7 @@ import BasePlugin from './base-plugin.js';
 
 export default class SeedMapSetter extends BasePlugin {
   static get description() {
-    return `The <code>SeedMapSetter</code> plugin can be used to automate setting seeding map and the map being played after the seeding ends.`;
+    return 'The <code>SeedMapSetter</code> plugin can be used to automate setting seeding map and the map being played after the seeding ends.';
   }
 
   static get defaultEnabled() {
@@ -13,12 +13,12 @@ export default class SeedMapSetter extends BasePlugin {
     return {
       seedingLayers: {
         required: false,
-        description: `Seeding layers from which one will be set randomly with <AdminChangeLayer> command.`,
+        description: 'Seeding layers from which one will be set randomly with <AdminChangeLayer> command.',
         default: []
       },
       afterSeedingLayers: {
         required: false,
-        description: `Layers from which one will be set randomly with <AdminSetNextLayer> command.`,
+        description: 'Layers from which one will be set randomly with <AdminSetNextLayer> command.',
         default: []
       }
     };
@@ -52,7 +52,7 @@ export default class SeedMapSetter extends BasePlugin {
       // Wait 10 seconds to give the player to fully load in so the endscreen will show.
       // Otherwise the game is stuck on showing the map.
       this.changeLayerTimeout = setTimeout(this.changeLayer, 10 * 1000);
-      this.verbose(1, `New seeding map will be set in 10 seconds`);
+      this.verbose(1, 'New seeding map will be set in 10 seconds');
     }
   }
 
@@ -86,7 +86,7 @@ export default class SeedMapSetter extends BasePlugin {
 
   isGameModeSeed() {
     if (this.server.currentLayer?.gamemode !== "Seed") {
-      this.verbose(1, `Current layer is not seed`);
+      this.verbose(1, 'Current layer is not seed');
       return false;
     }
       
@@ -95,7 +95,7 @@ export default class SeedMapSetter extends BasePlugin {
 
   isOnlyOnePlayerOnTheServer() {
     if (this.server.playerCount > 1) {
-      this.verbose(1, `There are multiple players on the server`);
+      this.verbose(1, 'There are multiple players on the server');
       return false;
     }
       
