@@ -55,7 +55,7 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       return;
     }
 
-    this.verbose(1, 'Message will be sent in ' + timeoutValue + ' ms');
+    this.verbose(1, `Message will be sent in ${timeoutValue} ms`);
 
     this.timeout = setTimeout(this.sendMessage, timeoutValue);
   }
@@ -82,6 +82,11 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
   async sendMessage() {
     if (!this.channel) {
       this.verbose(1, 'Could not send Discord Message. Channel not initialized.');
+      return;
+    }
+      
+    if (this.server.playerCount > 60) {
+      this.verbose(1, 'Server already seeded.');
       return;
     }
 
