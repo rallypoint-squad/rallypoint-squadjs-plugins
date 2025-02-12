@@ -84,7 +84,12 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       this.verbose(1, 'Could not send Discord Message. Channel not initialized.');
       return;
     }
-      
+
+    if (!('send' in this.channel)) {
+      this.verbose(1, 'Could not send Discord Message. Channel is not a text channel.');
+      return;
+    }
+
     if (this.server.playerCount > 60) {
       this.verbose(1, 'Server already seeded.');
       return;
@@ -99,8 +104,8 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
     try {
       var message = await this.channel.send({
         'content': content,
-        'allowed_mentions': {
-          'parse': ['roles']
+        allowedMentions: {
+          parse: ['roles']
         }
       });
 
@@ -109,12 +114,10 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       try {
         await message.crosspost();
         this.verbose(1, 'Message crossposted');
-      }
-      catch (error) {
+      } catch (error) {
         this.verbose(1, 'Error when crossposting message', error);
       }
-    }
-    catch (error) {
+    } catch (error) {
       this.verbose(1, 'Error when sending message', error);
     }
   }

@@ -37,7 +37,7 @@ export default class SeedMapSetter extends BasePlugin {
   }
 
   async unmount() {
-    this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
+    this.server.removeListener('PLAYER_CONNECTED', this.onPlayerConnected);
 
     clearTimeout(this.changeLayerTimeout);
     clearTimeout(this.setNextLayerTimeout);

@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "noEmit": true,
+    "rootDirs": [
+      "./plugins/",
+      "./types/plugins/",
+    ],
+    "types": [
+      "vitest/globals"
+    ],
+    "target": "ES2022",
+  },
+  "exclude": [
+    "./SquadJS/",
+    "./node_modules/",
+  ],
+}
