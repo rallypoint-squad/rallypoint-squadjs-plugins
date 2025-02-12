@@ -4,9 +4,14 @@ import pluginJs from '@eslint/js';
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
+    ignores: [
+      'mocks/',
+    ],
+  },
+  {
     languageOptions: {
-      globals: globals.node
-    }
+      globals: globals.node,
+    },
   },
   pluginJs.configs.recommended,
   {
@@ -26,8 +31,8 @@ export default [
           classes: 'always',
           keywords: 'always',
           functions: 'always',
-        }
-      ]
-    }
-  }
+        },
+      ],
+    },
+  },
 ];
