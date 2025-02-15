@@ -4,13 +4,19 @@ import pluginJs from '@eslint/js';
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
+    ignores: [
+      'SquadJS/',
+    ],
+  },
+  {
     languageOptions: {
-      globals: globals.node
-    }
+      globals: globals.node,
+    },
   },
   pluginJs.configs.recommended,
   {
     rules: {
+      'brace-style': 'error',
       curly: 'error',
       indent: [
         'error',
@@ -26,8 +32,8 @@ export default [
           classes: 'always',
           keywords: 'always',
           functions: 'always',
-        }
-      ]
-    }
-  }
+        },
+      ],
+    },
+  },
 ];

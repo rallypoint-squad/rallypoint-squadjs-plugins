@@ -1,0 +1,3 @@
+[submodule "SquadJS"]
+	path = SquadJS
+	url = git@github.com:Team-Silver-Sphere/SquadJS.git
