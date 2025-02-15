@@ -1,13 +1,13 @@
 import Sequelize from 'sequelize';
-import moment from 'moment';
+import { stringify } from 'querystring';
 
 import DiscordBasePlugin from './discord-base-plugin.js';
 
-const { DataTypes, QueryTypes } = Sequelize;
+const { DataTypes, Op } = Sequelize;
 
 export default class PlayerTracker extends DiscordBasePlugin {
   static get description() {
-    return 'The <code>PlayerTracker</code> plugin tracks hours played by players in a period of time and reports the data in a Discord channel.
+    return 'The <code>PlayerTracker</code> plugin tracks hours played by players in a period of time and reports the data in a Discord channel.';
   }
 
   static get defaultEnabled() {
@@ -29,6 +29,36 @@ export default class PlayerTracker extends DiscordBasePlugin {
         description: 'The Sequelize connector to log player information to.',
         default: 'mysql'
       },
+      whitelisterApiUrl: {
+        required: true,
+        description: 'The URL of whitelister API.',
+        default: '',
+        example: 'https://rally-point.corrupted-infantry.com'
+      },
+      whitelisterApiKey: {
+        required: true,
+        description: 'The API key for accessing whitelister.',
+        default: '',
+        example: 'q1EMSOG4nNh5TMmZKbVGWTmKU8VF30WJz4tqvUguPec0NzXP3vo3zV9RfCXMZFMpq1EMSOG4nNh5TMmZKbVGWTmKU8VF30WJz4tqvUguPec0NzXP3vo3zV9RfCXMZFMp'
+      },
+      whitelisterApiPlayerListId: {
+        required: true,
+        description: 'Identifier of the list associated with clan whitelists.',
+        default: '',
+        example: '6707e4bebc0764367fc41fd6'
+      },
+      seedingStartsAt: {
+        required: false,
+        description: 'The minimum number of players connected to the server in order for the plugin to consider server to be seeding.',
+        default: '4',
+        example: '4'
+      },
+      seedingEndsAt: {
+        required: false,
+        description: 'The maximum number of players connected to the server in order for the plugin to consider server to be seeding.',
+        default: '60',
+        example: '60'
+      }
     }
   }
 
@@ -44,7 +74,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
           type: DataTypes.STRING,
           primaryKey: true
         },
-        clanCode: {
+        clanTag: {
           type: DataTypes.STRING
         }
       },
@@ -57,17 +87,34 @@ export default class PlayerTracker extends DiscordBasePlugin {
     this.createModel(
       'Playtime',
       {
+        steamID: { 
+          type: DataTypes.STRING,
+          primaryKey: true
+        },
         date: {
-          type: DataTypes.DATEONLY
+          type: DataTypes.DATEONLY,
+          primaryKey: true
         },
         minutesPlayed: {
-          type: DataTypes.INTEGER
+          type: DataTypes.INTEGER,
+          defaultValue: 0
         },
         minutesSeeded: {
-          type: DataTypes.INTEGER
+          type: DataTypes.INTEGER,
+          defaultValue: 0
         }
+      },
+      {
+        charset: 'utf8mb4',
+        collate: 'utf8mb4_unicode_ci'
       }
     );
+
+    this.models.Player.hasMany(this.models.Playtime, {
+      sourceKey: 'steamID',
+      foreignKey: { name: 'steamID', allowNull: false },
+      onDelete: 'CASCADE'
+    });
 
     this.updatePlaytime = this.updatePlaytime.bind(this);
   }
@@ -79,11 +126,15 @@ export default class PlayerTracker extends DiscordBasePlugin {
   }
 
   async prepareToMount() {
-    await this.models.Server.sync();
+    await this.models.Player.sync();
+    await this.models.Playtime.sync();
   }
 
   async mount() {
-    // sync whitelister database with `Player` table
+    await this.syncWhitelister();
+
+    // TODO clean up old entries
+
     this.interval = setInterval(this.updatePlaytime, 60_000);
   }
 
@@ -91,7 +142,81 @@ export default class PlayerTracker extends DiscordBasePlugin {
     clearInterval(this.interval);
   }
 
+  async syncWhitelister() {
+    const clansResponse = await fetch(`${this.options.whitelisterApiUrl}/api/clans/getAllClans?${stringify({
+      apiKey: this.options.whitelisterApiKey
+    })}`);
+    
+    const clans = await clansResponse.json();
+
+    const clantagsById = clans.reduce((acc, clan) => {
+      acc[clan._id] = clan.tag;
+      return acc;
+    }, {});  
+
+    const playersResponse = await fetch(`${this.options.whitelisterApiUrl}/api/whitelist/read/getAll?${stringify({
+      apiKey: this.options.whitelisterApiKey,
+      sel_list_id: this.options.whitelisterApiPlayerListId
+    })}`);
+  
+    const players = await playersResponse.json();
+
+    for (let index in players) {
+      const player = players[index];
+
+      await this.models.Player.upsert({
+        steamID: player.steamid64,
+        clanTag: clantagsById[player.id_clan]    
+      })
+    }
+  }
+
   async updatePlaytime() {
-    // get list of players on the server and for each try to update `Playtime` table
+    const datetime = new Date();
+    const date = datetime.toISOString().slice(0,10);
+    const playerCount = this.server.playerCount;
+    
+    if (playerCount < this.options.seedingStartsAt) {
+      return;
+    }
+    
+    const connectedSteamIds = this.server.players.map(player => player.steamID);
+    
+    const trackedAndConnectedPlayers = await this.models.Player.findAll({
+      where: {
+        steamID: {
+          [Op.in]: connectedSteamIds
+        }
+      },
+      include: {
+        model: this.models.Playtime,
+        as: 'Playtimes',
+        required: false,
+        where: {
+          date: date
+        }
+      },
+    });
+
+    for (let index in trackedAndConnectedPlayers) {
+      let trackedAndConnectedPlayer = trackedAndConnectedPlayers[index];
+
+      let minutesPlayed = trackedAndConnectedPlayer.Playtimes?.[0]?.minutesPlayed ?? 0;
+      let minutesSeeded = trackedAndConnectedPlayer.Playtimes?.[0]?.minutesSeeded ?? 0;
+      
+      if (playerCount > this.options.seedingEndsAt) {
+        minutesPlayed++;
+      }
+      else {
+        minutesSeeded++;
+      }
+
+      await this.models.Playtime.upsert({
+        steamID: trackedAndConnectedPlayer.steamID,
+        date: date,
+        minutesPlayed: minutesPlayed,
+        minutesSeeded: minutesSeeded
+      });      
+    }
   }
 }
