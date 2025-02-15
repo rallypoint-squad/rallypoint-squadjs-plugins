@@ -1,3 +1,4 @@
+import moment from 'moment';
 import Sequelize from 'sequelize';
 import { stringify } from 'querystring';
 
@@ -111,12 +112,22 @@ export default class PlayerTracker extends DiscordBasePlugin {
     );
 
     this.models.Player.hasMany(this.models.Playtime, {
+      as: 'Playtimes',
       sourceKey: 'steamID',
       foreignKey: { name: 'steamID', allowNull: false },
       onDelete: 'CASCADE'
     });
 
+    this.models.Playtime.belongsTo(this.models.Player, {
+      as: 'Player',
+      sourceKey: 'steamID',
+      foreignKey: { name: 'steamID', allowNull: false }
+    });
+
     this.updatePlaytime = this.updatePlaytime.bind(this);
+    this.getTimeoutValue = this.getTimeoutValue.bind(this);
+    this.sendStatistics = this.sendStatistics.bind(this);
+    this.formatTable = this.formatTable.bind(this);
   }
 
   createModel(name, schema) {
@@ -126,6 +137,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
   }
 
   async prepareToMount() {
+    await super.prepareToMount();
     await this.models.Player.sync();
     await this.models.Playtime.sync();
   }
@@ -136,10 +148,17 @@ export default class PlayerTracker extends DiscordBasePlugin {
     // TODO clean up old entries
 
     this.interval = setInterval(this.updatePlaytime, 60_000);
+
+    const timeoutValue = this.getTimeoutValue();
+    
+    if (timeoutValue >= 0) {
+      this.timeout = setTimeout(this.sendStatistics, timeoutValue);
+    }
   }
 
   async unmount() {
     clearInterval(this.interval);
+    clearTimeout(this.timeout);
   }
 
   async syncWhitelister() {
@@ -164,16 +183,17 @@ export default class PlayerTracker extends DiscordBasePlugin {
     for (let index in players) {
       const player = players[index];
 
-      await this.models.Player.upsert({
-        steamID: player.steamid64,
-        clanTag: clantagsById[player.id_clan]    
-      })
+      if (clantagsById[player.id_clan]) {
+        await this.models.Player.upsert({
+          steamID: player.steamid64,
+          clanTag: clantagsById[player.id_clan]    
+        });
+      }
     }
   }
 
   async updatePlaytime() {
-    const datetime = new Date();
-    const date = datetime.toISOString().slice(0,10);
+    const date = moment().startOf('day');
     const playerCount = this.server.playerCount;
     
     if (playerCount < this.options.seedingStartsAt) {
@@ -216,7 +236,68 @@ export default class PlayerTracker extends DiscordBasePlugin {
         date: date,
         minutesPlayed: minutesPlayed,
         minutesSeeded: minutesSeeded
-      });      
+      });
     }
+  }
+
+  getTimeoutValue() {
+    var now = moment();
+    var messageTime = moment().startOf('isoWeek').add(12, 'h');
+    return messageTime - now;
+  }
+
+  async sendStatistics() {
+    const dateFrom = moment().subtract(7, 'day').startOf('day');
+    const dateTill = moment().subtract(1, 'day').startOf('day');
+
+    const playtimes = await this.models.Player.findAll({
+      raw: true,
+      attributes: [
+        'clanTag',
+        [Sequelize.fn('SUM', Sequelize.col('minutesSeeded')), 'totalMinutesSeeded'],
+        [Sequelize.fn('SUM', Sequelize.col('minutesPlayed')), 'totalMinutesPlayed'],
+      ],
+      include: {
+        model: this.models.Playtime,
+        as: 'Playtimes',
+        required: false,
+        attributes: [],
+        where: {
+          date: {
+            [Op.between]: [dateFrom, dateTill]
+          }
+        }
+      },
+      group:['clanTag']
+    });
+
+    await this.sendDiscordMessage({
+      embed: {
+        title: 'Clan statistics (in minutes)',
+        description: `\`\`\`\n${this.formatTable(playtimes)}\`\`\``,
+        fields: [
+          {
+            name: 'From',
+            value: dateFrom.format('YYYY-MM-DD'),
+            inline: true
+          },
+          {
+            name: 'Till',
+            value: dateFrom.format('YYYY-MM-DD'),
+            inline: true
+          }
+        ]
+      }
+    });
+  }
+
+  formatTable(data) {
+    let table = 'Clan       Seeded   Played\n';
+
+    data.forEach(item => {
+      table += `${String(item.clanTag ?? 'N/A').padEnd(10)} ${String(item.totalMinutesSeeded ?? 0).padStart(6)}   ${String(item.totalMinutesPlayed ?? 0).padStart(6)}\n`;
+    });
+  
+    return table;
   }
 }
