@@ -48,10 +48,9 @@ describe('discord-seed-call.js', () => {
     await plugin.prepareToMount();
     await plugin.mount();
 
-    vi.advanceTimersByTime(12 * 60 * 60 * 1000);
-    await vi.runAllTimersAsync();
-
+    await vi.advanceTimersByTimeAsync(12 * 60 * 60 * 1000);
     expect(vi.getTimerCount()).toBe(0);
+
     expect(discordChannel.send).toHaveBeenCalledOnce();
     expect(discordChannel.send).toHaveBeenCalledWith({
       'content': 'HELLO WORLD',
@@ -72,10 +71,9 @@ describe('discord-seed-call.js', () => {
     await plugin.prepareToMount();
     await plugin.mount();
 
-    vi.advanceTimersByTime(12 * 60 * 60 * 1000);
-    await vi.runAllTimersAsync();
-
+    await vi.advanceTimersByTimeAsync(12 * 60 * 60 * 1000);
     expect(vi.getTimerCount()).toBe(0);
+
     expect(discordChannel.send).not.toHaveBeenCalled();
   });
 
