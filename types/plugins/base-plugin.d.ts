@@ -1,37 +1,37 @@
 import { SquadServer } from '../SquadJS.js';
 
 export interface PluginOptionSpec {
-    required: boolean;
-    description: string;
-    connector?: string;
-    default?: any;
-    example?: any;
+  required: boolean;
+  description: string;
+  connector?: string;
+  default?: any;
+  example?: any;
 }
 
 export type PluginOptionsSpec = Record<string, PluginOptionSpec>;
 
 export type PluginOptions = Record<string, any>;
 
-export default class BasePlugin {
+export default class BasePlugin<PluginOptions = {}> {
 
-    static description: string;
+  static description: string;
 
-    static defaultEnabled: boolean;
+  static defaultEnabled: boolean;
 
-    static optionsSpecification: PluginOptionsSpec;
+  static optionsSpecification: PluginOptionsSpec;
 
-    server: SquadServer;
+  server: SquadServer;
 
-    options: Record<string, any>;
+  options: PluginOptions;
 
-    constructor(server: SquadServer, options: PluginOptions, connectors: Record<string, unknown>);
+  constructor(server: SquadServer, options: PluginOptions, connectors: Record<string, unknown>);
 
-    prepareToMount(): Promise<void>;
+  prepareToMount(): Promise<void>;
 
-    mount(): Promise<void>;
+  mount(): Promise<void>;
 
-    unmount(): Promise<void>;
+  unmount(): Promise<void>;
 
-    verbose(...args: any[]): void;
+  verbose(...args: any[]): void;
 
 }

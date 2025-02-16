@@ -2,7 +2,18 @@ import moment from 'moment';
 
 import DiscordBasePlugin from './discord-base-plugin.js';
 
+/**
+ * @typedef {Object} ExtraPluginOptions
+ * @property {string} time
+ * @property {string} message
+ * @property {string[]} pingGroups
+ */
+
+/**
+ * @extends {DiscordBasePlugin<ExtraPluginOptions>}
+ */
 export default class DiscordSeedCall extends DiscordBasePlugin {
+
   static get description() {
     return 'The <code>DiscordSeedCall</code> plugin will send a message in a Discord channel at specified time of the day.';
   }
@@ -121,4 +132,5 @@ export default class DiscordSeedCall extends DiscordBasePlugin {
       this.verbose(1, 'Error when sending message', error);
     }
   }
+
 }

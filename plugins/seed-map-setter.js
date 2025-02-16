@@ -1,6 +1,16 @@
 import BasePlugin from './base-plugin.js';
 
+/**
+ * @typedef {Object} ExtraPluginOptions
+ * @property {string[]} seedingLayers
+ * @property {string[]} afterSeedingLayers
+ */
+
+/**
+ * @extends {BasePlugin<ExtraPluginOptions>}
+ */
 export default class SeedMapSetter extends BasePlugin {
+
   static get description() {
     return 'The <code>SeedMapSetter</code> plugin can be used to automate setting seeding map and the map being played after the seeding ends.';
   }
@@ -101,4 +111,5 @@ export default class SeedMapSetter extends BasePlugin {
 
     return true;
   }
+
 }

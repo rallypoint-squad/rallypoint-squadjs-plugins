@@ -6,7 +6,21 @@ import DiscordBasePlugin from './discord-base-plugin.js';
 
 const { DataTypes, Op } = Sequelize;
 
+/**
+ * @typedef {Object} ExtraPluginOptions
+ * @property {Sequelize.Sequelize} database
+ * @property {string} whitelisterApiUrl
+ * @property {string} whitelisterApiKey
+ * @property {string} whitelisterApiPlayerListId
+ * @property {number} seedingStartsAt
+ * @property {number} seedingEndsAt
+ */
+
+/**
+ * @extends {DiscordBasePlugin<ExtraPluginOptions>}
+ */
 export default class PlayerTracker extends DiscordBasePlugin {
+
   static get description() {
     return 'The <code>PlayerTracker</code> plugin tracks hours played by players in a period of time and reports the data in a Discord channel.';
   }
@@ -51,14 +65,14 @@ export default class PlayerTracker extends DiscordBasePlugin {
       seedingStartsAt: {
         required: false,
         description: 'The minimum number of players connected to the server in order for the plugin to consider server to be seeding.',
-        default: '4',
-        example: '4'
+        default: 4,
+        example: 4
       },
       seedingEndsAt: {
         required: false,
         description: 'The maximum number of players connected to the server in order for the plugin to consider server to be seeding.',
-        default: '60',
-        example: '60'
+        default: 60,
+        example: 60
       }
     }
   }
@@ -67,7 +81,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
     super(server, options, connectors);
 
     this.models = {};
-    
+
     this.createModel(
       'Player',
       {
@@ -88,7 +102,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
     this.createModel(
       'Playtime',
       {
-        steamID: { 
+        steamID: {
           type: DataTypes.STRING,
           primaryKey: true
         },
@@ -130,8 +144,9 @@ export default class PlayerTracker extends DiscordBasePlugin {
     this.formatTable = this.formatTable.bind(this);
   }
 
-  createModel(name, schema) {
+  createModel(name, schema, options) {
     this.models[name] = this.options.database.define(`PlayerTracker_${name}`, schema, {
+      ...options,
       timestamps: false
     });
   }
@@ -150,7 +165,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
     this.interval = setInterval(this.updatePlaytime, 60_000);
 
     const timeoutValue = this.getTimeoutValue();
-    
+
     if (timeoutValue >= 0) {
       this.timeout = setTimeout(this.sendStatistics, timeoutValue);
     }
@@ -165,19 +180,19 @@ export default class PlayerTracker extends DiscordBasePlugin {
     const clansResponse = await fetch(`${this.options.whitelisterApiUrl}/api/clans/getAllClans?${stringify({
       apiKey: this.options.whitelisterApiKey
     })}`);
-    
+
     const clans = await clansResponse.json();
 
     const clantagsById = clans.reduce((acc, clan) => {
       acc[clan._id] = clan.tag;
       return acc;
-    }, {});  
+    }, {});
 
     const playersResponse = await fetch(`${this.options.whitelisterApiUrl}/api/whitelist/read/getAll?${stringify({
       apiKey: this.options.whitelisterApiKey,
       sel_list_id: this.options.whitelisterApiPlayerListId
     })}`);
-  
+
     const players = await playersResponse.json();
 
     for (let index in players) {
@@ -186,7 +201,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
       if (clantagsById[player.id_clan]) {
         await this.models.Player.upsert({
           steamID: player.steamid64,
-          clanTag: clantagsById[player.id_clan]    
+          clanTag: clantagsById[player.id_clan]
         });
       }
     }
@@ -195,13 +210,13 @@ export default class PlayerTracker extends DiscordBasePlugin {
   async updatePlaytime() {
     const date = moment().startOf('day');
     const playerCount = this.server.playerCount;
-    
+
     if (playerCount < this.options.seedingStartsAt) {
       return;
     }
-    
+
     const connectedSteamIds = this.server.players.map(player => player.steamID);
-    
+
     const trackedAndConnectedPlayers = await this.models.Player.findAll({
       where: {
         steamID: {
@@ -223,11 +238,10 @@ export default class PlayerTracker extends DiscordBasePlugin {
 
       let minutesPlayed = trackedAndConnectedPlayer.Playtimes?.[0]?.minutesPlayed ?? 0;
       let minutesSeeded = trackedAndConnectedPlayer.Playtimes?.[0]?.minutesSeeded ?? 0;
-      
+
       if (playerCount > this.options.seedingEndsAt) {
         minutesPlayed++;
-      }
-      else {
+      } else {
         minutesSeeded++;
       }
 
@@ -243,7 +257,7 @@ export default class PlayerTracker extends DiscordBasePlugin {
   getTimeoutValue() {
     var now = moment();
     var messageTime = moment().startOf('isoWeek').add(12, 'h');
-    return messageTime - now;
+    return messageTime.valueOf() - now.valueOf();
   }
 
   async sendStatistics() {
@@ -297,7 +311,8 @@ export default class PlayerTracker extends DiscordBasePlugin {
     data.forEach(item => {
       table += `${String(item.clanTag ?? 'N/A').padEnd(10)} ${String(item.totalMinutesSeeded ?? 0).padStart(6)}   ${String(item.totalMinutesPlayed ?? 0).padStart(6)}\n`;
     });
-  
+
     return table;
   }
+
 }

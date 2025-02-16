@@ -36,6 +36,19 @@ export class Layer {
 }
 
 // https://github.com/Team-Silver-Sphere/SquadJS/blob/master/squad-server/index.js
+// https://github.com/Team-Silver-Sphere/SquadJS/blob/master/squad-server/rcon.js
+export class Player {
+
+  playerID: number;
+  name: string;
+  isLeader: boolean;
+  teamID: number|null;
+  squadID: number|null;
+  steamID?: string;
+
+}
+
+// https://github.com/Team-Silver-Sphere/SquadJS/blob/master/squad-server/index.js
 export class SquadServer extends EventEmitter {
 
   //~ Direct instance properties
@@ -43,7 +56,7 @@ export class SquadServer extends EventEmitter {
   id: string;
   options: Record<string, any>;
   layerHistory: unknown[];
-  players: unknown[];
+  players: Player[];
   squads: unknown[];
   admins: unknown;
   adminsInAdminCam: unknown;
