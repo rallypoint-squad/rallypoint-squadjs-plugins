@@ -3,7 +3,7 @@ import BasePlugin from '@squadjs/plugins/base-plugin.js'
 /**
  * Pattern for parsing whitelist entries.
  */
-const WHITELIST_PATTERN = /^Admin=(?<steamID>[0-9]+):(?<groupName>[A-Z]+) \/\/ \[(?<listName>[A-Z]+)\] /i;
+const WHITELIST_PATTERN = /^Admin=(?<steamID>[0-9]+):(?<groupName>[A-Z]+) \/\/ \[(?<listName>[^\]]+)\] /i;
 
 interface WhitelistEntry {
   steamID: string;
