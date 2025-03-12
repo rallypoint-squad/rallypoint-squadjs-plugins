@@ -74,4 +74,17 @@ describe('WhitelisterConnector', () => {
     expect(clans['BAZ'].map(it => it.steamID)).toEqual(['1000000000002', '1000000000003']);
   });
 
+  it('correctly parses non-letter clan tags', async () => {
+    const plugin = createPlugin();
+
+    mockServer.use(http.get('http://whitelist.local/wl', () => {
+      return HttpResponse.text([
+        'Admin=1000000000003:Whitelist // [Az -_ 42 🤦] john doe',
+      ].join('\n'));
+    }));
+
+    const clans = await plugin.getWhitelistClans();
+    expect(Object.keys(clans)).toEqual(['Az -_ 42 🤦']);
+  });
+
 });
